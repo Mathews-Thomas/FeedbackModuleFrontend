@@ -17,6 +17,7 @@ export const FeedbackSection = () => {
   const [selectedPatient, setSelectedPatient] = useState(null); // State for selected patient
   const [doctors, setDoctors] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [error, setError] = useState(null); // State for error message
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,18 +40,25 @@ export const FeedbackSection = () => {
   const fetchPatientDetails = async (phone) => {
     try {
       const response = await Axios.get(`/get-patient-details?phone=${phone}`);
-      console.log(response.data, "patientdata");
-      setPatientDetails(response.data.patients);
-      setDoctors(response.data.doctors);
-      
-      // If there's only one patient, select it automatically
-      if (response.data.patients.length === 1) {
-        setSelectedPatient(response.data.patients[0]);
-        updateFormData(response.data.patients[0], response.data.doctors);
+      if (response.data.patients.length === 0) {
+        setError("Patient not found");
+        setPatientDetails([]);
+        setSelectedPatient(null);
+      } else {
+        setError(null); // Clear the error if patients are found
+        setPatientDetails(response.data.patients);
+        setDoctors(response.data.doctors);
+
+        if (response.data.patients.length === 1) {
+          setSelectedPatient(response.data.patients[0]);
+          updateFormData(response.data.patients[0], response.data.doctors);
+        }
       }
     } catch (error) {
       console.error("Error fetching patient details:", error);
+      setError("An error occurred while fetching patient details.");
       setPatientDetails([]); // Reset if there's an error
+      setSelectedPatient(null);
     }
   };
 
@@ -76,7 +84,6 @@ export const FeedbackSection = () => {
       const response = await Axios.get("/get-employee-details");
       const filterEmployees = await response?.data?.filter((employee) => employee?.role?.roleType === "user");
       setEmployees(filterEmployees);
-      console.log(filterEmployees, "filterEmployees");
       setFormData((prevData) => ({
         ...prevData,
         employeeId: filterEmployees[0]._id,
@@ -115,6 +122,7 @@ export const FeedbackSection = () => {
             className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
             placeholder="Enter patient's mobile number"
           />
+          {error && <p className="text-red-500 mt-2">{error}</p>}
         </div>
 
         {patientDetails.length > 1 && (
