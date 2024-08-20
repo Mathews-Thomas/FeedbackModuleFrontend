@@ -17,7 +17,7 @@ export const FeedbackSection = () => {
   const [selectedPatient, setSelectedPatient] = useState(null); // State for selected patient
   const [doctors, setDoctors] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [error, setError] = useState(null); // State for error message
+  const [noPatientFound, setNoPatientFound] = useState(false); // State for no patient found
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -41,11 +41,11 @@ export const FeedbackSection = () => {
     try {
       const response = await Axios.get(`/get-patient-details?phone=${phone}`);
       if (response.data.patients.length === 0) {
-        setError("Patient not found");
+        setNoPatientFound(true); // Set no patient found to true
         setPatientDetails([]);
         setSelectedPatient(null);
       } else {
-        setError(null); // Clear the error if patients are found
+        setNoPatientFound(false); // Clear the no patient found flag if patients are found
         setPatientDetails(response.data.patients);
         setDoctors(response.data.doctors);
 
@@ -56,7 +56,7 @@ export const FeedbackSection = () => {
       }
     } catch (error) {
       console.error("Error fetching patient details:", error);
-      setError("An error occurred while fetching patient details.");
+      setNoPatientFound(true); // Show no patient found on error as well
       setPatientDetails([]); // Reset if there's an error
       setSelectedPatient(null);
     }
@@ -122,7 +122,9 @@ export const FeedbackSection = () => {
             className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
             placeholder="Enter patient's mobile number"
           />
-          {error && <p className="text-red-500 mt-2">{error}</p>}
+          {noPatientFound && (
+            <p className="text-red-500 mt-2">No patient found with this phone number.</p>
+          )}
         </div>
 
         {patientDetails.length > 1 && (
