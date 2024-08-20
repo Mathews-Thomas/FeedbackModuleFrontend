@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Axios from "../../Config/axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
-
+import toast , { Toaster } from 'react-hot-toast';
 export const FeedbackSection = () => {
   const [formData, setFormData] = useState({
     patientMobile: "",
@@ -14,26 +14,74 @@ export const FeedbackSection = () => {
   });
 
   const [patientDetails, setPatientDetails] = useState([]);
-  const [selectedPatient, setSelectedPatient] = useState(null); // State for selected patient
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [noPatientFound, setNoPatientFound] = useState(false); // State for no patient found
-
+  const [noPatientFound, setNoPatientFound] = useState(false);
+  const [errors, setErrors] = useState({});
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors((prevErrors) => ({ ...prevErrors, [e.target.name]: "" }));
   };
 
   const handleRatingChange = (name, rating) => {
     setFormData({ ...formData, [name]: rating });
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    let errors = {};
+
+    if (!formData.patientMobile || formData.patientMobile.length !== 10) {
+      isValid = false;
+      errors.patientMobile = "Valid mobile number is required.";
+    }
+
+    if (!selectedPatient) {
+      isValid = false;
+      errors.selectedPatient = "Please select a patient.";
+    }
+
+    if (!formData.doctorName) {
+      isValid = false;
+      errors.doctorName = "Doctor's name is required.";
+    }
+
+    if (formData.doctorRating === 0) {
+      isValid = false;
+      errors.doctorRating = "Please rate the doctor.";
+    }
+
+    if (!formData.employeeName) {
+      isValid = false;
+      errors.employeeName = "Employee's name is required.";
+    }
+
+    if (formData.employeeRating === 0) {
+      isValid = false;
+      errors.employeeRating = "Please rate the employee.";
+    }
+
+    if (formData.comment.length < 10) {
+      isValid = false;
+      errors.comment = "Comment must be at least 10 characters.";
+    }
+
+    setErrors(errors);
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     try {
       await Axios.post("/feedback", formData);
-      alert("Feedback submitted successfully!");
+      toast.success("Feedback submitted successfully!");
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      toast.error("Error submitting feedback:", error.message);
     }
   };
 
@@ -41,14 +89,15 @@ export const FeedbackSection = () => {
     try {
       const response = await Axios.get(`/get-patient-details?phone=${phone}`);
       if (response.data.patients.length === 0) {
-        setNoPatientFound(true); // Set no patient found to true
+        setNoPatientFound(true);
         setPatientDetails([]);
         setSelectedPatient(null);
       } else {
-        setNoPatientFound(false); // Clear the no patient found flag if patients are found
+        setNoPatientFound(false);
         setPatientDetails(response.data.patients);
         setDoctors(response.data.doctors);
-
+    console.log(response.data.patients,"this is patients");
+    console.log(response.data.doctors,"this is doctors");
         if (response.data.patients.length === 1) {
           setSelectedPatient(response.data.patients[0]);
           updateFormData(response.data.patients[0], response.data.doctors);
@@ -56,8 +105,8 @@ export const FeedbackSection = () => {
       }
     } catch (error) {
       console.error("Error fetching patient details:", error);
-      setNoPatientFound(true); // Show no patient found on error as well
-      setPatientDetails([]); // Reset if there's an error
+      setNoPatientFound(true);
+      setPatientDetails([]);
       setSelectedPatient(null);
     }
   };
@@ -77,17 +126,18 @@ export const FeedbackSection = () => {
   const handlePatientSelection = (patient) => {
     setSelectedPatient(patient);
     updateFormData(patient, doctors);
+    setErrors((prevErrors) => ({ ...prevErrors, selectedPatient: "" }));
   };
 
   const fetchEmployeeData = async () => {
     try {
       const response = await Axios.get("/get-employee-details");
-      const filterEmployees = await response?.data?.filter((employee) => employee?.role?.roleType === "user");
-      setEmployees(filterEmployees);
+      const filteredEmployees = await response?.data?.filter((employee) => employee?.role?.roleType === "user");
+      setEmployees(filteredEmployees);
       setFormData((prevData) => ({
         ...prevData,
-        employeeId: filterEmployees[0]._id,
-        employeeName: filterEmployees[0].name
+        employeeId: filteredEmployees[0]._id,
+        employeeName: `${filteredEmployees[0].firstName} ${filteredEmployees[0].lastName}`
       }));
     } catch (error) {
       console.error("Error fetching employee data:", error);
@@ -115,16 +165,15 @@ export const FeedbackSection = () => {
             value={formData.patientMobile || ""}
             onChange={(e) => {
               handleChange(e);
-              if (e.target.value.length === 10) { // Assuming mobile numbers are 10 digits
+              if (e.target.value.length === 10) {
                 fetchPatientDetails(e.target.value);
               }
             }}
             className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
             placeholder="Enter patient's mobile number"
           />
-          {noPatientFound && (
-            <p className="text-red-500 mt-2">No patient found with this phone number.</p>
-          )}
+          {errors.patientMobile && <p className="text-red-500 mt-2">{errors.patientMobile}</p>}
+          {noPatientFound && <p className="text-red-500 mt-2">No patient found with this phone number.</p>}
         </div>
 
         {patientDetails.length > 1 && (
@@ -141,6 +190,7 @@ export const FeedbackSection = () => {
                 </option>
               ))}
             </select>
+            {errors.selectedPatient && <p className="text-red-500 mt-2">{errors.selectedPatient}</p>}
           </div>
         )}
 
@@ -176,7 +226,7 @@ export const FeedbackSection = () => {
 
             <div className="flex flex-col">
               <label className="mb-2 text-lg text-gray-800 font-semibold" htmlFor="patientPlace">
-                Place:
+                City:
               </label>
               <input
                 type="text"
@@ -206,6 +256,7 @@ export const FeedbackSection = () => {
                 </option>
               ))}
             </select>
+            {errors.doctorName && <p className="text-red-500 mt-2">{errors.doctorName}</p>}
           </div>
           <div className="flex flex-col">
             <label className="mb-2 text-lg text-gray-800 font-semibold">Doctor Rating:</label>
@@ -221,8 +272,10 @@ export const FeedbackSection = () => {
                 />
               ))}
             </div>
+            {errors.doctorRating && <p className="text-red-500 mt-2">{errors.doctorRating}</p>}
           </div>
         </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
           <div className="flex flex-col">
             <label className="mb-2 text-lg text-gray-800 font-semibold">Employee Name:</label>
@@ -234,11 +287,12 @@ export const FeedbackSection = () => {
             >
               <option value="" disabled>Select employee's name</option>
               {employees.map((employee) => (
-                <option key={employee._id} value={employee.firstName + " " + employee.lastName}>
+                <option key={employee._id} value={`${employee.firstName} ${employee.lastName}`}>
                   {employee.firstName} {employee.lastName}
                 </option>
               ))}
             </select>
+            {errors.employeeName && <p className="text-red-500 mt-2">{errors.employeeName}</p>}
           </div>
           <div className="flex flex-col">
             <label className="mb-2 text-lg text-gray-800 font-semibold">Employee Rating:</label>
@@ -254,8 +308,10 @@ export const FeedbackSection = () => {
                 />
               ))}
             </div>
+            {errors.employeeRating && <p className="text-red-500 mt-2">{errors.employeeRating}</p>}
           </div>
         </div>
+
         <div className="flex flex-col">
           <label className="mb-2 text-lg text-gray-800 font-semibold">Comment:</label>
           <textarea
@@ -265,7 +321,9 @@ export const FeedbackSection = () => {
             className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800 h-32"
             placeholder="Enter your comments"
           />
+          {errors.comment && <p className="text-red-500 mt-2">{errors.comment}</p>}
         </div>
+
         <div className="flex justify-end mt-6">
           <button
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-10 rounded-lg transition-colors duration-300 shadow-md"
@@ -275,6 +333,7 @@ export const FeedbackSection = () => {
           </button>
         </div>
       </form>
+      <Toaster/>
     </div>
   );
 };
