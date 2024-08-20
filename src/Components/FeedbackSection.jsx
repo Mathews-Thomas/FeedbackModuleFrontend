@@ -95,9 +95,11 @@ export const FeedbackSection = () => {
       } else {
         setNoPatientFound(false);
         setPatientDetails(response.data.patients);
-        setDoctors(response.data.doctors);
-    console.log(response.data.patients,"this is patients");
-    console.log(response.data.doctors,"this is doctors");
+        const filterDoctors = await response.data?.doctors?.filter(
+          (doctor) => doctor?.BranchID === response.data?.patients[0]?.BranchID
+        );
+        setDoctors(filterDoctors);
+  console.log(filterDoctors,"this is doctors");
         if (response.data.patients.length === 1) {
           setSelectedPatient(response.data.patients[0]);
           updateFormData(response.data.patients[0], response.data.doctors);
@@ -204,8 +206,8 @@ export const FeedbackSection = () => {
                 type="text"
                 id="patientName"
                 name="patientName"
-                value={selectedPatient.Name}
-                className="border cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
+                value={selectedPatient?.Name}
+                className="border capitalize cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
                 disabled
               />
             </div>
@@ -218,8 +220,8 @@ export const FeedbackSection = () => {
                 type="text"
                 id="patientAge"
                 name="patientAge"
-                value={selectedPatient.age}
-                className="border cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
+                value={selectedPatient?.age}
+                className="border capitalize cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
                 disabled
               />
             </div>
@@ -232,8 +234,8 @@ export const FeedbackSection = () => {
                 type="text"
                 id="patientPlace"
                 name="patientPlace"
-                value={selectedPatient.address.city}
-                className="border cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
+                value={selectedPatient?.address?.city}
+                className="border capitalize cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
                 disabled
               />
             </div>
@@ -333,7 +335,7 @@ export const FeedbackSection = () => {
           </button>
         </div>
       </form>
-      <Toaster/>
+      <Toaster />
     </div>
   );
 };
