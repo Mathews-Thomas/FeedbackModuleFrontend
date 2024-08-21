@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import Axios from "../../Config/axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
@@ -21,6 +21,7 @@ export const FeedbackSection = () => {
   const [employees, setEmployees] = useState([]);
   const [noPatientFound, setNoPatientFound] = useState(false);
   const [errors, setErrors] = useState({});
+  const [phone, setPhone] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -36,7 +37,7 @@ export const FeedbackSection = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.patientMobile || formData.patientMobile.length !== 10) {
+    if (!formData.patientMobile) {
       newErrors.patientMobile = "Valid mobile number or Patient ID is required.";
     }
     if (!selectedPatient) {
@@ -110,6 +111,7 @@ export const FeedbackSection = () => {
     setEmployees([]);
     setPatientDetails([]);
     setSelectedPatient(null);
+    setPhone("");
   };
 
   const fetchPatientDetails = useCallback(
@@ -196,7 +198,7 @@ export const FeedbackSection = () => {
   );
 
   return (
-    <div className="p-8 bg-white rounded-lg shadow-xl max-w-3xl mx-auto my-12 border border-gray-200">
+    <div className="p-8  bg-gray-10 rounded-lg max-w-3xl mx-auto md:my-12 border border-gray-200">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900">Patient Feedback</h1>
         <p className="text-md text-gray-600 mt-2">
@@ -211,9 +213,10 @@ export const FeedbackSection = () => {
           <input
             type="text"
             name="patientMobile"
-            value={formData.patientMobile || ""}
+            value={phone.patientMobile || ""}
             onChange={(e) => {
               handleChange(e);
+              setPhone({ patientMobile: e.target.value });
               debouncedFetchPatientDetails(e.target.value);
             }}
             className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
@@ -222,7 +225,7 @@ export const FeedbackSection = () => {
           {patientDetails.map((patient, index) => (
             <div
               key={index}
-              className="mt-2 bg-gray-100 p-2 cursor-pointer hover:bg-gray-200 capitalize rounded-md"
+              className="mt-2 bg-gray-100 border p-2 cursor-pointer hover:bg-gray-200 capitalize rounded-md"
               onClick={() => handlePatientSelection(patient)}
             >
               {patient.Name}, Age: {patient.age}, City: {patient.address?.city}, PatientID: {patient.PatientID}
@@ -263,7 +266,7 @@ export const FeedbackSection = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-8 items-center">
           <DropdownField
             label="Doctor Name"
             name="doctorName"
@@ -281,9 +284,9 @@ export const FeedbackSection = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-center">
           <DropdownField
-            label="Employee Name"
+            label="Staff Name"
             name="employeeName"
             value={formData.employeeName}
             options={employees}
@@ -291,7 +294,7 @@ export const FeedbackSection = () => {
             error={errors.employeeName}
           />
           <RatingField
-            label="Employee Rating"
+            label="Staff Rating"
             name="employeeRating"
             rating={formData.employeeRating}
             onRatingChange={handleRatingChange}
@@ -362,7 +365,7 @@ const RatingField = ({ label, name, rating, onRatingChange, error }) => (
         <FontAwesomeIcon
           key={star}
           icon={faStar}
-          className={`cursor-pointer transition-colors duration-200 ${star <= rating ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500`}
+          className={`cursor-pointer transition-colors duration-200 ${star <= rating ? "text-yellow-500" : "text-gray-500"} hover:text-yellow-500`}
           onClick={() => onRatingChange(name, star)}
         />
       ))}
