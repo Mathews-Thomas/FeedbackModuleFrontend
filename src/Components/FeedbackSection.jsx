@@ -1,154 +1,199 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Axios from "../../Config/axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
-import toast , { Toaster } from 'react-hot-toast';
+import Swal from "sweetalert2";
+
 export const FeedbackSection = () => {
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     patientMobile: "",
     doctorName: "",
     employeeName: "",
     doctorRating: 0,
     employeeRating: 0,
-    comment: ""
-  });
+    comment: "",
+  };
 
+  const [formData, setFormData] = useState(initialFormData);
   const [patientDetails, setPatientDetails] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [noPatientFound, setNoPatientFound] = useState(false);
   const [errors, setErrors] = useState({});
+
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors((prevErrors) => ({ ...prevErrors, [e.target.name]: "" }));
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
   };
 
   const handleRatingChange = (name, rating) => {
-    setFormData({ ...formData, [name]: rating });
+    setFormData((prevData) => ({ ...prevData, [name]: rating }));
     setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
   };
 
   const validateForm = () => {
-    let isValid = true;
-    let errors = {};
+    const newErrors = {};
 
     if (!formData.patientMobile || formData.patientMobile.length !== 10) {
-      isValid = false;
-      errors.patientMobile = "Valid mobile number is required.";
+      newErrors.patientMobile = "Valid mobile number or Patient ID is required.";
     }
-
     if (!selectedPatient) {
-      isValid = false;
-      errors.selectedPatient = "Please select a patient.";
+      newErrors.selectedPatient = "Please select a patient.";
     }
-
     if (!formData.doctorName) {
-      isValid = false;
-      errors.doctorName = "Doctor's name is required.";
+      newErrors.doctorName = "Doctor's name is required.";
     }
-
     if (formData.doctorRating === 0) {
-      isValid = false;
-      errors.doctorRating = "Please rate the doctor.";
+      newErrors.doctorRating = "Please rate the doctor.";
     }
-
     if (!formData.employeeName) {
-      isValid = false;
-      errors.employeeName = "Employee's name is required.";
+      newErrors.employeeName = "Employee's name is required.";
     }
-
     if (formData.employeeRating === 0) {
-      isValid = false;
-      errors.employeeRating = "Please rate the employee.";
+      newErrors.employeeRating = "Please rate the employee.";
     }
-
     if (formData.comment.length < 10) {
-      isValid = false;
-      errors.comment = "Comment must be at least 10 characters.";
+      newErrors.comment = "Comment must be at least 10 characters.";
     }
 
-    setErrors(errors);
-    return isValid;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
+
     try {
       await Axios.post("/feedback", formData);
-      toast.success("Feedback submitted successfully!");
+      Swal.fire({
+        position: "center",
+        icon: "success",
+        title: "🎉 Feedback Submitted!",
+        html: "<b>Thank you for your Feedback!</b><br>Your feedback helps us improve.",
+        showConfirmButton: false,
+        timer: 2000,
+        background: "#f0f8ff",
+        iconColor: "#28a745",
+        customClass: {
+          popup: "animate__animated animate__fadeInDown",
+          title: "text-success",
+          htmlContainer: "text-info",
+        },
+      });
+
+      resetForm();
     } catch (error) {
-      toast.error("Error submitting feedback:", error.message);
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: "❌ Feedback Submission Failed!",
+        html: "<b>Something went wrong.</b><br>Please try again later.",
+        showConfirmButton: false,
+        timer: 2000,
+        background: "#ffe6e6",
+        iconColor: "#dc3545",
+        customClass: {
+          popup: "animate__animated animate__shakeX",
+          title: "text-danger",
+          htmlContainer: "text-dark",
+        },
+      });
     }
   };
 
-  const fetchPatientDetails = async (phone) => {
-    try {
-      const response = await Axios.get(`/get-patient-details?phone=${phone}`);
-      if (response.data.patients.length === 0) {
-        setNoPatientFound(true);
-        setPatientDetails([]);
-        setSelectedPatient(null);
-      } else {
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setDoctors([]);
+    setEmployees([]);
+    setPatientDetails([]);
+    setSelectedPatient(null);
+  };
+
+  const fetchPatientDetails = useCallback(
+    async (searchValue) => {
+      if (!searchValue) {
+        resetForm();
         setNoPatientFound(false);
-        setPatientDetails(response.data.patients);
-        const filterDoctors = await response.data?.doctors?.filter(
-          (doctor) => doctor?.BranchID === response.data?.patients[0]?.BranchID
-        );
-        setDoctors(filterDoctors);
-  console.log(filterDoctors,"this is doctors");
-        if (response.data.patients.length === 1) {
-          setSelectedPatient(response.data.patients[0]);
-          updateFormData(response.data.patients[0], response.data.doctors);
-        }
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching patient details:", error);
-      setNoPatientFound(true);
-      setPatientDetails([]);
-      setSelectedPatient(null);
-    }
-  };
+      try {
+        const { data } = await Axios.get(
+          `/get-patient-details?phone=${searchValue}`
+        );
+        if (data.patients.length === 0) {
+          setNoPatientFound(true);
+          resetForm();
+        } else {
+          const filteredDoctors = data.doctors.filter(
+            (doctor) => doctor.BranchID === data.patients[0].BranchID
+          );
+          setPatientDetails(data.patients);
+          setDoctors(filteredDoctors);
+          fetchEmployeeData();
+          setNoPatientFound(false);
+          if (data.patients.length === 1) {
+            handlePatientSelection(data.patients[0], filteredDoctors);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching patient details:", error);
+        setNoPatientFound(true);
+        resetForm();
+      }
+    },
+    []
+  );
 
-  const updateFormData = (patient, doctors) => {
+  const handlePatientSelection = (patient, doctorList = doctors) => {
+    setSelectedPatient(patient);
+    setPatientDetails([]); // Clear other search results after selection
     setFormData((prevData) => ({
       ...prevData,
       patientMobile: patient.phone,
       patientName: patient.Name,
       PatientID: patient.PatientID,
       patientId: patient._id,
-      doctorId: doctors[0]?._id || "",
-      doctorName: doctors[0]?.name || ""
+      doctorId: doctorList[0]?._id || "",
+      doctorName: doctorList[0]?.name || "",
     }));
-  };
-
-  const handlePatientSelection = (patient) => {
-    setSelectedPatient(patient);
-    updateFormData(patient, doctors);
     setErrors((prevErrors) => ({ ...prevErrors, selectedPatient: "" }));
   };
+  
 
-  const fetchEmployeeData = async () => {
+  const fetchEmployeeData = useCallback(async () => {
     try {
-      const response = await Axios.get("/get-employee-details");
-      const filteredEmployees = await response?.data?.filter((employee) => employee?.role?.roleType === "user");
-      setEmployees(filteredEmployees);
-      setFormData((prevData) => ({
-        ...prevData,
-        employeeId: filteredEmployees[0]._id,
-        employeeName: `${filteredEmployees[0].firstName} ${filteredEmployees[0].lastName}`
-      }));
+      const { data } = await Axios.get("/get-employee-details");
+      const userEmployees = data.filter(
+        (employee) => employee.role?.roleType === "user"
+      );
+      setEmployees(userEmployees);
+      if (userEmployees.length > 0) {
+        setFormData((prevData) => ({
+          ...prevData,
+          employeeId: userEmployees[0]._id,
+          employeeName: `${userEmployees[0].firstName} ${userEmployees[0].lastName}`,
+        }));
+      }
     } catch (error) {
       console.error("Error fetching employee data:", error);
     }
+  }, []);
+
+  const debounce = (func, delay) => {
+    let debounceTimer;
+    return (...args) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => func(...args), delay);
+    };
   };
 
-  useEffect(() => {
-    fetchEmployeeData();
-  }, []);
+  const debouncedFetchPatientDetails = useCallback(
+    debounce(fetchPatientDetails, 500),
+    [fetchPatientDetails,]
+  );
 
   return (
     <div className="p-8 bg-white rounded-lg shadow-xl max-w-3xl mx-auto my-12 border border-gray-200">
@@ -160,182 +205,182 @@ export const FeedbackSection = () => {
       </div>
       <form className="space-y-8" onSubmit={handleSubmit}>
         <div className="flex flex-col">
-          <label className="mb-2 text-lg text-gray-800 font-semibold">Patient Mobile Number:</label>
+          <label className="mb-2 text-lg text-gray-800 font-semibold">
+            Patient Mobile Number or Patient ID:
+          </label>
           <input
             type="text"
             name="patientMobile"
             value={formData.patientMobile || ""}
             onChange={(e) => {
               handleChange(e);
-              if (e.target.value.length === 10) {
-                fetchPatientDetails(e.target.value);
-              }
+              debouncedFetchPatientDetails(e.target.value);
             }}
             className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
-            placeholder="Enter patient's mobile number"
+            placeholder="Enter patient's mobile number or Patient ID"
           />
-          {errors.patientMobile && <p className="text-red-500 mt-2">{errors.patientMobile}</p>}
-          {noPatientFound && <p className="text-red-500 mt-2">No patient found with this phone number.</p>}
-        </div>
-
-        {patientDetails.length > 1 && (
-          <div className="flex flex-col">
-            <label className="mb-2 text-lg text-gray-800 font-semibold">Select Patient:</label>
-            <select
-              onChange={(e) => handlePatientSelection(patientDetails[e.target.value])}
-              className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
+          {patientDetails.map((patient, index) => (
+            <div
+              key={index}
+              className="mt-2 bg-gray-100 p-2 cursor-pointer hover:bg-gray-200 capitalize rounded-md"
+              onClick={() => handlePatientSelection(patient)}
             >
-              <option value="" disabled selected>Select a patient</option>
-              {patientDetails.map((patient, index) => (
-                <option key={index} value={index}>
-                  {patient.Name}, Age: {patient.age}, City: {patient.address.city}
-                </option>
-              ))}
-            </select>
-            {errors.selectedPatient && <p className="text-red-500 mt-2">{errors.selectedPatient}</p>}
-          </div>
-        )}
+              {patient.Name}, Age: {patient.age}, City: {patient.address?.city}, PatientID: {patient.PatientID}
+            </div>
+          ))}
+          {errors.patientMobile && (
+            <p className="text-red-500 mt-2">{errors.patientMobile}</p>
+          )}
+          {noPatientFound && (
+            <p className="text-red-500 mt-2">
+              No patient found with this phone number or Patient ID.
+            </p>
+          )}
+        </div>
 
         {selectedPatient && (
           <div className="mt-6 space-y-4">
-            <div className="flex flex-col">
-              <label className="mb-2 text-lg text-gray-800 font-semibold" htmlFor="patientName">
-                Name:
-              </label>
-              <input
-                type="text"
-                id="patientName"
-                name="patientName"
-                value={selectedPatient?.Name}
-                className="border capitalize cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
-                disabled
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="mb-2 text-lg text-gray-800 font-semibold" htmlFor="patientAge">
-                Age:
-              </label>
-              <input
-                type="text"
-                id="patientAge"
-                name="patientAge"
-                value={selectedPatient?.age}
-                className="border capitalize cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
-                disabled
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="mb-2 text-lg text-gray-800 font-semibold" htmlFor="patientPlace">
-                City:
-              </label>
-              <input
-                type="text"
-                id="patientPlace"
-                name="patientPlace"
-                value={selectedPatient?.address?.city}
-                className="border capitalize cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
-                disabled
-              />
-            </div>
+            <InputField
+              label="Name"
+              value={selectedPatient.Name}
+              disabled
+            />
+            <InputField
+              label="Age"
+              value={selectedPatient.age}
+              disabled
+            />
+            <InputField
+              label="City"
+              value={selectedPatient.address?.city}
+              disabled
+            />
+            <InputField
+              label="Patient ID"
+              value={selectedPatient.PatientID}
+              disabled
+            />
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-8">
-          <div className="flex flex-col">
-            <label className="mb-2 text-lg text-gray-800 font-semibold">Doctor Name:</label>
-            <select
-              name="doctorName"
-              value={formData.doctorName}
-              onChange={handleChange}
-              className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
-            >
-              <option value="" disabled>Select doctor's name</option>
-              {doctors.map((doctor) => (
-                <option key={doctor._id} value={doctor.name}>
-                  {doctor.name} - {doctor.specialization}
-                </option>
-              ))}
-            </select>
-            {errors.doctorName && <p className="text-red-500 mt-2">{errors.doctorName}</p>}
-          </div>
-          <div className="flex flex-col">
-            <label className="mb-2 text-lg text-gray-800 font-semibold">Doctor Rating:</label>
-            <div className="flex space-x-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FontAwesomeIcon
-                  key={star}
-                  icon={faStar}
-                  className={`cursor-pointer transition-colors duration-200 ${
-                    star <= formData.doctorRating ? "text-yellow-500" : "text-gray-300"
-                  } hover:text-yellow-500`}
-                  onClick={() => handleRatingChange("doctorRating", star)}
-                />
-              ))}
-            </div>
-            {errors.doctorRating && <p className="text-red-500 mt-2">{errors.doctorRating}</p>}
-          </div>
+          <DropdownField
+            label="Doctor Name"
+            name="doctorName"
+            value={formData.doctorName}
+            options={doctors}
+            onChange={handleChange}
+            error={errors.doctorName}
+          />
+          <RatingField
+            label="Doctor Rating"
+            name="doctorRating"
+            rating={formData.doctorRating}
+            onRatingChange={handleRatingChange}
+            error={errors.doctorRating}
+          />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-          <div className="flex flex-col">
-            <label className="mb-2 text-lg text-gray-800 font-semibold">Employee Name:</label>
-            <select
-              name="employeeName"
-              value={formData.employeeName}
-              onChange={handleChange}
-              className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
-            >
-              <option value="" disabled>Select employee's name</option>
-              {employees.map((employee) => (
-                <option key={employee._id} value={`${employee.firstName} ${employee.lastName}`}>
-                  {employee.firstName} {employee.lastName}
-                </option>
-              ))}
-            </select>
-            {errors.employeeName && <p className="text-red-500 mt-2">{errors.employeeName}</p>}
-          </div>
-          <div className="flex flex-col">
-            <label className="mb-2 text-lg text-gray-800 font-semibold">Employee Rating:</label>
-            <div className="flex space-x-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FontAwesomeIcon
-                  key={star}
-                  icon={faStar}
-                  className={`cursor-pointer transition-colors duration-200 ${
-                    star <= formData.employeeRating ? "text-yellow-500" : "text-gray-300"
-                  } hover:text-yellow-500`}
-                  onClick={() => handleRatingChange("employeeRating", star)}
-                />
-              ))}
-            </div>
-            {errors.employeeRating && <p className="text-red-500 mt-2">{errors.employeeRating}</p>}
-          </div>
+          <DropdownField
+            label="Employee Name"
+            name="employeeName"
+            value={formData.employeeName}
+            options={employees}
+            onChange={handleChange}
+            error={errors.employeeName}
+          />
+          <RatingField
+            label="Employee Rating"
+            name="employeeRating"
+            rating={formData.employeeRating}
+            onRatingChange={handleRatingChange}
+            error={errors.employeeRating}
+          />
         </div>
 
-        <div className="flex flex-col">
-          <label className="mb-2 text-lg text-gray-800 font-semibold">Comment:</label>
-          <textarea
-            name="comment"
-            value={formData.comment}
-            onChange={handleChange}
-            className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800 h-32"
-            placeholder="Enter your comments"
-          />
-          {errors.comment && <p className="text-red-500 mt-2">{errors.comment}</p>}
-        </div>
+        <TextareaField
+          label="Comment"
+          name="comment"
+          value={formData.comment}
+          onChange={handleChange}
+          error={errors.comment}
+        />
 
         <div className="flex justify-end mt-6">
           <button
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-10 rounded-lg transition-colors duration-300 shadow-md"
             type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-10 rounded-lg transition-colors duration-300 shadow-md"
           >
             Submit Feedback
           </button>
         </div>
       </form>
-      <Toaster />
     </div>
   );
 };
+
+const InputField = ({ label, value, disabled }) => (
+  <div className="flex flex-col">
+    <label className="mb-2 text-lg text-gray-800 font-semibold">{label}:</label>
+    <input
+      type="text"
+      value={value}
+      className="border capitalize cursor-not-allowed border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none text-gray-800"
+      disabled={disabled}
+    />
+  </div>
+);
+
+const DropdownField = ({ label, name, value, options, onChange, error }) => (
+  <div className="flex flex-col">
+    <label className="mb-2 text-lg text-gray-800 font-semibold">{label}:</label>
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800"
+    >
+      <option value="" disabled>
+        Select {label.toLowerCase()}
+      </option>
+      {options.map((option) => (
+        <option key={option._id} value={option.name || `${option.firstName} ${option.lastName}`}>
+          {option.name || `${option.firstName} ${option.lastName}`}
+        </option>
+      ))}
+    </select>
+    {error && <p className="text-red-500 mt-2">{error}</p>}
+  </div>
+);
+
+const RatingField = ({ label, name, rating, onRatingChange, error }) => (
+  <div className="flex flex-col">
+    <label className="mb-2 text-lg text-gray-800 font-semibold">{label}:</label>
+    <div className="flex space-x-2">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <FontAwesomeIcon
+          key={star}
+          icon={faStar}
+          className={`cursor-pointer transition-colors duration-200 ${star <= rating ? "text-yellow-500" : "text-gray-300"} hover:text-yellow-500`}
+          onClick={() => onRatingChange(name, star)}
+        />
+      ))}
+    </div>
+    {error && <p className="text-red-500 mt-2">{error}</p>}
+  </div>
+);
+
+const TextareaField = ({ label, name, value, onChange, error }) => (
+  <div className="flex flex-col">
+    <label className="mb-2 text-lg text-gray-800 font-semibold">{label}:</label>
+    <textarea
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="border border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none text-gray-800 h-32"
+      placeholder={`Enter your ${label.toLowerCase()}`}
+    />
+    {error && <p className="text-red-500 mt-2">{error}</p>}
+  </div>
+);
