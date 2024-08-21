@@ -111,7 +111,6 @@ export const FeedbackSection = () => {
     setEmployees([]);
     setPatientDetails([]);
     setSelectedPatient(null);
-    setPhone("");
   };
 
   const fetchPatientDetails = useCallback(
@@ -225,7 +224,7 @@ export const FeedbackSection = () => {
           {patientDetails.map((patient, index) => (
             <div
               key={index}
-              className="mt-2 bg-gray-100 border p-2 cursor-pointer hover:bg-gray-200 capitalize rounded-md"
+              className="mt-2 bg-gray-100  p-2 cursor-pointer hover:bg-gray-200 capitalize "
               onClick={() => handlePatientSelection(patient)}
             >
               {patient.Name}, Age: {patient.age}, City: {patient.address?.city}, PatientID: {patient.PatientID}
