@@ -197,7 +197,7 @@ export const FeedbackSection = () => {
   );
 
   return (
-    <div className="p-8  bg-gray-10 rounded-lg max-w-3xl mx-auto md:my-12 border border-gray-200">
+    <div className="p-8  bg-gray-10 rounded-lg max-w-3xl mx-4 md:mx-auto my-7  border border-gray-200">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900">Patient Feedback</h1>
         <p className="text-md text-gray-600 mt-2">
