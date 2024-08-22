@@ -8,8 +8,8 @@ function App() {
     <>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Feedback />} />
-        <Route path="/queue" element={<Queue/>} />
+        <Route path="/queue" element={<Feedback />} />
+        <Route path="/" element={<Queue/>} />
       </Routes>
     </BrowserRouter>
     </>
