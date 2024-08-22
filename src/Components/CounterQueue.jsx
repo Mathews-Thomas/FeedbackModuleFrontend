@@ -3,9 +3,9 @@ import Logo from "../assets/logo-topmost.png"
 export const CounterQueue = () => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
   const [activeTokens, setActiveTokens] = useState({
-    1: 1,
-    2: 1,
-    3: 1,
+    1: 0,
+    2: 0,
+    3: 0,
   });
   const [tokenStatus, setTokenStatus] = useState({
     1: "queue",
@@ -64,16 +64,16 @@ export const CounterQueue = () => {
   };
 
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full flex flex-col justify-center ">
       {/* Header section */}
       <div className="flex justify-center text-purple-800 font-semibold p-5 text-2xl sm:text-4xl">
-        <h2 className="flex justify-center items-center"><img src={Logo}  /> - Intelligent Queue Management System</h2>
+        <h2 className="flex justify-center items-center"><img src={Logo} alt="Logo" /> - Intelligent Queue Management System</h2>
       </div>
 
       {/* Table section */}
       <div className="flex justify-center items-center flex-grow">
         <table className="text-center w-full overflow-x-auto">
-          <thead className="bg-blue-600 text-white text-xl sm:text-3xl">
+          <thead className="bg-blue-600 text-white text-xl sm:text-4xl">
             <tr className="border-l-2 border-gray-300">
               <th className="border-l-2 border-gray-300 p-2">Doctor</th>
               <th className="border-l-2 border-gray-300 p-2">Department</th>
@@ -86,16 +86,16 @@ export const CounterQueue = () => {
             {data.map((item) => (
               <tr
                 key={item.counter}
-                className="border border-gray-300 border-l-2 capitalize"
+                className="border border-gray-200 border-l-2 capitalize"
               >
-                <td className="border-l-2 border-gray-300 p-2">
+                <td className="border-l-2 border-gray-200 p-4 text-3xl">
                   {item.doctor}
                 </td>
-                <td className="border-l-2 border-gray-300 p-2">
+                <td className="border-l-2 border-gray-200 p-4 text-3xl">
                   {item.department}
                 </td>
                 <td
-                  className={`border-l-2 border-gray-300 p-2 ${
+                  className={`border-l-2 border-gray-200 p-4 text-3xl ${
                     tokenStatus[item.counter] === "in"
                       ? "bg-green-500 animate-pulse"
                       : ""
@@ -103,7 +103,7 @@ export const CounterQueue = () => {
                 >
                   TM-{activeTokens[item.counter]}
                 </td>
-                <td className="border-l-2 border-gray-300 p-2 flex flex-col sm:flex-row justify-center items-center">
+                <td className="border-l-2 border-gray-200 p-4 flex flex-col sm:flex-row justify-center items-center text-4xl">
                   {item.counter}
                   <button
                     onClick={() => handleNextToken(item.counter)}
@@ -118,7 +118,7 @@ export const CounterQueue = () => {
                     Mark Out
                   </button>
                 </td>
-                <td className="border-l-2 border-gray-300 p-2">
+                <td className="border-l-2 border-gray-200 p-4 text-3xl">
                   {tokenStatus[item.counter] === "in"
                     ? "In"
                     : tokenStatus[item.counter] === "out"
@@ -132,7 +132,7 @@ export const CounterQueue = () => {
       </div>
 
       {/* Footer section */}
-      <div className="bg-purple-800 text-white p-4 text-center  fixed bottom-0 w-full">
+      <div className="bg-purple-800 text-white p-4 text-center  fixed bottom-0 w-full ">
         <span className="text-2xl sm:text-4xl bg-green-500 p-3 text-red-700 font-bold">
           {time}
         </span>
