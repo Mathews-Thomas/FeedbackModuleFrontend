@@ -122,7 +122,7 @@ export const FeedbackSection = () => {
       }
       try {
         const { data } = await Axios.get(
-          `/get-patient-details?phone=${searchValue}`
+          `/get-patient-details?search=${searchValue}`
         );
         if (data.patients.length === 0) {
           setNoPatientFound(true);
@@ -132,7 +132,8 @@ export const FeedbackSection = () => {
             (doctor) => doctor.BranchID === data.patients[0].BranchID
           );
           setPatientDetails(data.patients);
-          setDoctors(data.doctors);
+          console.log(data)
+          setDoctors(filteredDoctors);
           console.log(data.doctors)
           fetchEmployeeData();
           setNoPatientFound(false);
