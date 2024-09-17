@@ -132,7 +132,8 @@ export const FeedbackSection = () => {
             (doctor) => doctor.BranchID === data.patients[0].BranchID
           );
           setPatientDetails(data.patients);
-          setDoctors(filteredDoctors);
+          setDoctors(data.doctors);
+          console.log(data.doctors)
           fetchEmployeeData();
           setNoPatientFound(false);
           if (data.patients.length === 1) {

@@ -1,6 +1,5 @@
 import { Feedback } from "./Pages/Feedback"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
-import { Queue } from "./Pages/Queue"
 
 function App() {
 
@@ -8,8 +7,7 @@ function App() {
     <>
     <BrowserRouter>
       <Routes>
-        <Route path="/queue" element={<Feedback />} />
-        <Route path="/" element={<Queue/>} />
+        <Route path="/" element={<Feedback />} />
       </Routes>
     </BrowserRouter>
     </>
